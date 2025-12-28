@@ -1,0 +1,107 @@
+ROUTINE globals
+    ; ^match(tournament, +year, +rating, +match_id, key) = list value
+    ; Кіберспортивна ліга - зберігання даних матчів
+
+main
+    Do input
+    Do show
+    Do funcs
+    Quit
+
+clear
+    Kill ^match
+    Write "cleared",!
+    Quit
+
+input
+    New t, y, r, id, p1, p2, sc, g
+
+    Write !,"--- input ---",!
+    Read "tournament: ", t, !
+    Read "year: ", y, !
+    Read "rating: ", r, !
+    Read "match_id: ", id, !
+    Read "player1: ", p1, !
+    Read "player2: ", p2, !
+    Read "score: ", sc, !
+    Read "game: ", g, !
+
+    ; str list: players/score via delimiter
+    Set ^match(t, +y, +r, +id, "p") = p1_"/"_p2_"/"_sc
+    ; sys list: game + timestamp
+    Set ^match(t, +y, +r, +id, "m") = $LB(g, $H)
+
+    ; save last input for funcs demo
+    Set ^match("_last") = $LB(t, +y, +r, +id)
+
+    Write "saved",!
+    Quit
+
+show
+    New ref, val
+
+    Write !,"--- data ---",!
+    Set ref = $Query(^match(""))
+    For  Quit:ref=""  Do
+    . Quit:$QSubscript(ref,1)="_last"
+    . Set val = $Get(@ref)
+    . Write ref, " = ", val, !
+    . Set ref = $Query(@ref)
+    Quit
+
+funcs
+    New t, y, r, id, last, ref, plist, t2, mlist
+
+    Write !,"--- funcs ---",!
+
+    ; get last input params from global
+    Set last = $Get(^match("_last"))
+    If last = "" {
+        Write "no data, run input first",!
+        Quit
+    }
+    Set t = $LI(last, 1)
+    Set y = $LI(last, 2)
+    Set r = $LI(last, 3)
+    Set id = $LI(last, 4)
+
+    ; $ORDER - iterate tournaments
+    Write "$ORDER tournaments: "
+    Set t2 = "" For  Set t2 = $Order(^match(t2)) Quit:t2=""  Do
+    . Quit:t2="_last"
+    . Write t2, " "
+    Write !
+
+    ; $NEXT (deprecated but valid)
+    Set t2 = $Order(^match(""))
+    If t2 = "_last" Set t2 = $Order(^match(t2))
+    If t2 '= "" {
+        Write "$NEXT after '", t2, "': ", $Next(^match(t2)), !
+    }
+
+    ; $DATA - check structure
+    Write "$DATA(^match(", t, ")): ", $Data(^match(t)), !
+
+    ; $GET with default
+    Write "$GET(none): ", $Get(^match("xxx"), "N/A"), !
+
+    ; $NAME - canonical name (using input params, not hardcode!)
+    Set ref = $Name(^match(t, y, r, id, "p"))
+    Write "$NAME: ", ref, !
+
+    ; $PIECE - extract from str list
+    Set plist = $Get(^match(t, y, r, id, "p"))
+    If plist '= "" {
+        Write "$PIECE player1: ", $Piece(plist, "/", 1), !
+        Write "$PIECE player2: ", $Piece(plist, "/", 2), !
+        Write "$PIECE score: ", $Piece(plist, "/", 3), !
+    }
+
+    ; $LISTGET - extract from sys list
+    Set mlist = $Get(^match(t, y, r, id, "m"))
+    If mlist '= "" {
+        Write "$LG game: ", $LG(mlist, 1), !
+    }
+
+    Write "done",!
+    Quit
